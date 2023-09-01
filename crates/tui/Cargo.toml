@@ -2,10 +2,8 @@
 name = "tui"
 version = "0.1.0"
 edition = "2021"
-members = [
-    # all crates in a `./crates` folder will be added to the workspace
-	"crates/*",
-]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+cursive = { features = ["crossterm-backend"] }

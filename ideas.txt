@@ -1,0 +1,2 @@
+-> tui       tui-rs  ratatui based application    / cursive-rs  
+-> wgpu      graphics based library for gpu 
