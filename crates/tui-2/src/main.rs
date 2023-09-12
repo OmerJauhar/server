@@ -83,17 +83,17 @@ fn ui<B: Backend>(frame: &mut Frame<B>) {
 
     let rand_value : u64 = 23 ; 
 
-    let sparkline = Sparkline::default()
-        .block(
-            Block::default()
-                .title("Data1")
-                .borders(Borders::LEFT | Borders::RIGHT),
-        )
-        .data(&rand_value)
-        .style(Style::default().fg(Color::Yellow));
-    frame.render_widget(sparkline, search_layer[1]);
+    // let sparkline = Sparkline::default()
+    //     .block(
+    //         Block::default()
+    //             .title("Data1")
+    //             .borders(Borders::LEFT | Borders::RIGHT),
+    //     )
+    //     .data(&rand_value)
+    //     .style(Style::default().fg(Color::Yellow));
+    // frame.render_widget(sparkline, search_layer[1]);
 
-    frame.render_widget(Block::default().borders(ratatui::widgets::Borders::ALL),center_layout[2]);
+    // frame.render_widget(Block::default().borders(ratatui::widgets::Borders::ALL),center_layout[2]);
 
 
     let main_layer = Layout::default()
