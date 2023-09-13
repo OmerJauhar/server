@@ -1,3 +1,4 @@
 -> tui       tui-rs  ratatui based application    / cursive-rs  
 -> wgpu      graphics based library for gpu 
 --> thin client software 
+--> bcrypt -rust
