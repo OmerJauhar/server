@@ -1,11 +1,22 @@
+extern crate dotenv;
+use dotenv::dotenv;
+use std::env;
+
+
+fn hash_data() 
+{
+    let local_salt = env::var("/home/oj/server/crates/authentication/LOCAL_SALT.env").expect("local salt must be set");
+    println!("Local salt is {}",local_salt);
+}
 use rusqlite::{Connection, Result};
-use argon2::{
-    password_hash::{
-        rand_core::SeedableRng,
-        PasswordHash, PasswordHasher, PasswordVerifier, SaltString
-    },
-    Argon2
-};
+
+// use argon2::{
+//     password_hash::{
+//         rand_core::Osrng,
+//         PasswordHash, PasswordHasher, PasswordVerifier, SaltString
+//     },
+//     Argon2
+// };
 
 #[derive(Debug)]
 struct Person {
@@ -14,36 +25,36 @@ struct Person {
     password: String,
 }
 
-fn add_user(input_name:String , input_password:String) -> Result<()>
-{
-    let conn = Connection::open("my_database.db")?;
+// fn add_user(input_name:String , input_password:String) -> Result<()>
+// {
+//     let conn = Connection::open("my_database.db")?;
 
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS person (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            password TEXT NOT NULL
-        )",
-        (),
-    )?;
-    let password = b"hunter42"; // Bad password; don't actually use!
-    let salt = SaltString::generate(&mut SeedableRng);
+//     conn.execute(
+//         "CREATE TABLE IF NOT EXISTS person (
+//             id INTEGER PRIMARY KEY,
+//             name TEXT NOT NULL,
+//             password TEXT NOT NULL
+//         )",
+//         (),
+//     )?;
+//     let password = b"hunter42"; // Bad password; don't actually use!
+//     let salt = SaltString::generate(&mut SeedableRng);
 
-    // Argon2 with default params (Argon2id v19)
-    let argon2 = Argon2::default();
+//     // Argon2 with default params (Argon2id v19)
+//     let argon2 = Argon2::default();
 
-    let me = Person {
-        id: 0,
-        name: input_name,
-        password: input_password,
-    };
+//     let me = Person {
+//         id: 0,
+//         name: input_name,
+//         password: input_password,
+//     };
 
-    conn.execute(
-        "INSERT INTO person (name, password) VALUES (?1, ?2)",
-        [&me.name, &me.password],
-    )?;
-    Ok(())
-}
+//     conn.execute(
+//         "INSERT INTO person (name, password) VALUES (?1, ?2)",
+//         [&me.name, &me.password],
+//     )?;
+//     Ok(())
+// }
 
 fn authenticator(id:String , password:String) -> bool
 {
@@ -98,6 +109,10 @@ fn main() -> Result<()> {
         )",
         (),
     )?;
+
+    //
+    dotenv().ok();
+    hash_data();
 
     // let me = Person {
     //     id: 0,
