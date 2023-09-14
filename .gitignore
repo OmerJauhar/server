@@ -1,2 +1,3 @@
 /target
 crates/authentication/LOCAL_SALT.env
+crates/authentication/my_database.db
