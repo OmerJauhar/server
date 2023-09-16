@@ -1,60 +1,89 @@
 extern crate dotenv;
+extern crate rand; 
+
 use dotenv::dotenv;
 use std::env;
-
-
-fn hash_data() 
-{
-    let local_salt = env::var("/home/oj/server/crates/authentication/LOCAL_SALT.env").expect("local salt must be set");
-    println!("Local salt is {}",local_salt);
-}
+use std::fs::File;
+use std::io::{self, Read};
+use rand::Rng;
 use rusqlite::{Connection, Result};
+use argon2rs::defaults::{KIB, LANES, PASSES};
+use argon2rs::verifier::Encoded;
+use argon2rs::{Argon2, Variant};
 
-// use argon2::{
-//     password_hash::{
-//         rand_core::Osrng,
-//         PasswordHash, PasswordHasher, PasswordVerifier, SaltString
-//     },
-//     Argon2
-// };
+fn dehash_data(random_salt : String) -> String
+{
+    String::from("value")
+}
+
+fn hash_data(password:String) -> (String,String) 
+{
+    let mut file = File::open("LOCAL_SALT.env").expect("File Opened Successfuly");
+    let mut local_salt = String::new() ; 
+    file.read_to_string(&mut local_salt).expect("."); 
+    env::set_var("LOCAL_SALT", &local_salt);
+
+    // let random_salt = rand::thread_rng().gen()::<str>().take(32).collect::<String>();
+    let random_salt: String = rand::thread_rng()
+    .sample_iter(rand::distributions::Alphanumeric)
+    .take(32) // Adjust the length of the random string as needed
+    .map(char::from)
+    .collect();
+
+    println!("Random Salt={:}",random_salt);
+
+    let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
+    let random_salt_hash = Encoded::new(a2, random_salt.as_bytes(), local_salt.as_bytes(), b"", b"").to_u8();
+    let random_salt_hash_storable_encoding = String::from_utf8(random_salt_hash).unwrap();
+
+    let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
+    let data_hash = Encoded::new(a2, password.as_bytes(), random_salt_hash_storable_encoding.as_bytes(), b"", b"").to_u8();
+    let data_hash_storable_encoding = String::from_utf8(data_hash).unwrap();
+
+
+    let local_salt = env::var("LOCAL_SALT").expect("local salt must be set");
+    println!("{}",local_salt);
+    (data_hash_storable_encoding,random_salt_hash_storable_encoding)
+
+}
 
 #[derive(Debug)]
 struct Person {
     id: i32,
     name: String,
     password: String,
+    salt: String
 }
 
-// fn add_user(input_name:String , input_password:String) -> Result<()>
-// {
-//     let conn = Connection::open("my_database.db")?;
+fn add_user(input_name:String , input_password:String) -> Result<()>
+{
+    let conn = Connection::open("my_database.db")?;
 
-//     conn.execute(
-//         "CREATE TABLE IF NOT EXISTS person (
-//             id INTEGER PRIMARY KEY,
-//             name TEXT NOT NULL,
-//             password TEXT NOT NULL
-//         )",
-//         (),
-//     )?;
-//     let password = b"hunter42"; // Bad password; don't actually use!
-//     let salt = SaltString::generate(&mut SeedableRng);
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS person (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            password TEXT NOT NULL
+        )",
+        (),
+    )?;
 
-//     // Argon2 with default params (Argon2id v19)
-//     let argon2 = Argon2::default();
+    let (hashed_password,hashed_password_salt) = hash_data(input_password);
+   
+    let me = Person {
+        id: 0,
+        name: input_name,
+        password: hashed_password,
+        salt : hashed_password_salt
 
-//     let me = Person {
-//         id: 0,
-//         name: input_name,
-//         password: input_password,
-//     };
+    };
 
-//     conn.execute(
-//         "INSERT INTO person (name, password) VALUES (?1, ?2)",
-//         [&me.name, &me.password],
-//     )?;
-//     Ok(())
-// }
+    conn.execute(
+        "INSERT INTO person (name, password) VALUES (?1, ?2)",
+        [&me.name, &me.password, &me.salt],
+    )?;
+    Ok(())
+}
 
 fn authenticator(id:String , password:String) -> bool
 {
@@ -73,6 +102,7 @@ fn authenticator(id:String , password:String) -> bool
                             id: row.get(0)?,
                             name: row.get(1)?,
                             password: row.get(2)?,
+                            salt: row.get(3)?
                         })
                     });
                     false ;
@@ -112,18 +142,10 @@ fn main() -> Result<()> {
 
     //
     dotenv().ok();
-    hash_data();
+    let meowmeow = hash_data(String::from("meowmeow"));
+    println!("{:?}",meowmeow);
 
-    // let me = Person {
-    //     id: 0,
-    //     name: "root".to_string(),
-    //     password: "notroot".to_string(),
-    // };
-
-    // conn.execute(
-    //     "INSERT INTO person (name, password) VALUES (?1, ?2)",
-    //     [&me.name, &me.password],
-    // )?;
+    add_user(String::from("MEOWMEOW"),String::from("MEOWMEOW"));
 
     let mut stmt = conn.prepare("SELECT id, name, password FROM person")?;
     let person_iter = stmt.query_map([], |row| {
@@ -131,6 +153,7 @@ fn main() -> Result<()> {
             id: row.get(0)?,
             name: row.get(1)?,
             password: row.get(2)?,
+            salt: row.get(3)?
         })
     })?;
 
