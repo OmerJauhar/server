@@ -4,16 +4,27 @@ extern crate rand;
 use dotenv::dotenv;
 use std::env;
 use std::fs::File;
-use std::io::{self, Read};
+use std::io::Read;
 use rand::Rng;
 use rusqlite::{Connection, Result};
 use argon2rs::defaults::{KIB, LANES, PASSES};
 use argon2rs::verifier::Encoded;
 use argon2rs::{Argon2, Variant};
 
-fn dehash_data(random_salt : String) -> String
+fn dehash_data(password : String , hashed_salt : String ) -> String
 {
-    String::from("value")
+    let local_salt = env::var("LOCAL_SALT").expect("LOCAL_SALT must be set");
+
+    let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
+    let random_salt_hash = Encoded::new(a2, hashed_salt.as_bytes(), local_salt.as_bytes(), b"", b"").to_u8();
+    let random_salt_hash_storable_encoding = String::from_utf8(random_salt_hash).unwrap();
+
+    let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
+    let data_hash = Encoded::new(a2, password.as_bytes(), random_salt_hash_storable_encoding.as_bytes(), b"", b"").to_u8();
+    let data_hash_storable_encoding = String::from_utf8(data_hash).unwrap();
+
+    data_hash_storable_encoding
+
 }
 
 fn hash_data(password:String) -> (String,String) 
@@ -30,7 +41,16 @@ fn hash_data(password:String) -> (String,String)
     .map(char::from)
     .collect();
 
-    println!("Random Salt={:}",random_salt);
+    /*
+    fn new(argon: Argon2, p: &[u8], s: &[u8], k: &[u8], x: &[u8]) -> Self
+    Generates a new hashing session from password, salt, and other byte input. Parameters are:
+    argon: An Argon2 struct representative of the desired hash algorithm parameters.
+    p: Password input. as bytes 
+    s: Salt. as bytes 
+    k: An optional secret value. 
+    x: Optional, miscellaneous associated data.
+    Note that p, s, k, x must conform to the same length constraints dictated by Argon2::hash.
+    */
 
     let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
     let random_salt_hash = Encoded::new(a2, random_salt.as_bytes(), local_salt.as_bytes(), b"", b"").to_u8();
@@ -42,8 +62,8 @@ fn hash_data(password:String) -> (String,String)
 
 
     let local_salt = env::var("LOCAL_SALT").expect("local salt must be set");
-    println!("{}",local_salt);
-    (data_hash_storable_encoding,random_salt_hash_storable_encoding)
+    // println!("hash data function \n\n {:}\n\n {:}",data_hash_storable_encoding,random_salt_hash_storable_encoding);
+    (data_hash_storable_encoding,random_salt)
 
 }
 
@@ -68,13 +88,13 @@ fn add_user(input_name:String , input_password:String) -> Result<()>
         (),
     )?;
 
-    let (hashed_password,hashed_password_salt) = hash_data(input_password);
+    let (password,password_salt) = hash_data(input_password);
    
     let me = Person {
         id: 0,
         name: input_name,
-        password: hashed_password,
-        salt : hashed_password_salt
+        password: password,
+        salt : password_salt
 
     };
 
@@ -85,8 +105,9 @@ fn add_user(input_name:String , input_password:String) -> Result<()>
     Ok(())
 }
 
-fn authenticator(id:String , password:String) -> bool
+fn authenticator(input_name:String , password:String) -> bool
 {
+    let mut boolvar = false;
     let conn = Connection::open("my_database.db");
     match conn 
     {
@@ -97,37 +118,41 @@ fn authenticator(id:String , password:String) -> bool
             {
                 Ok(mut stmt1) =>
                 {
+                    
                     let person_iter = stmt1.query_map([], |row| {
-                        Ok(Person {
-                            id: row.get(0)?,
-                            name: row.get(1)?,
-                            password: row.get(2)?,
-                            salt: row.get(3)?
-                        })
+                       Person{
+                        id = row.get(0)?,
+                       }
+                        // match row.get(2) 
+                        // {
+                        //     Ok(row_name) =>
+                        //     {
+                        //         match row.get(2)
+                        //         {
+                        //             Ok(row_password) =>
+                        //             {
+                        //                 if (row_name == input_name ) && ( row_password == dehash_data(password, row.get(3)?)){
+                        //                         boolvar = true;  
+                        //                 }
+                        //                 Ok(())
+                        //             }
+                        //             Err(error) => Err(error)
+                        //         }
+                        //     }
+                        //     Err(error) => Err(error)   
+                        // }
                     });
-                    false ;
-            
-                    for person in person_iter {
-                        return true 
-                    }
-                    false 
                 }
-                Err(error) => 
-            {
-                println!("{:}",error);
-                false 
+                Err(error) => println!("{:}",error)
             }
-            }
-
-            } 
-            Err(error) =>
-            {
-                println!("{:}",error);
-                false 
-            }
+        }
+        Err(error) => println!("Connection failed")
     }
-    
+        boolvar
 }
+
+    
+
 fn main() -> Result<()> {
     let conn = Connection::open("my_database.db")?;
 
@@ -142,10 +167,6 @@ fn main() -> Result<()> {
 
     //
     dotenv().ok();
-    let meowmeow = hash_data(String::from("meowmeow"));
-    println!("{:?}",meowmeow);
-
-    add_user(String::from("MEOWMEOW"),String::from("MEOWMEOW"));
 
     let mut stmt = conn.prepare("SELECT id, name, password FROM person")?;
     let person_iter = stmt.query_map([], |row| {
@@ -156,10 +177,21 @@ fn main() -> Result<()> {
             salt: row.get(3)?
         })
     })?;
+    println!("1");
+    // add_user(String::from("oj"),String::from("oj"));
+    let (test_password, test_salt) =hash_data(String::from("oj")); 
 
+    println!("hash data function \n\n {:}\n\n {:}",test_password,test_salt);
+    
+    println!("\n\n2");
+
+    println!("final data\n\n {:}",dehash_data(String::from("oj"), test_salt));
+    
     for person in person_iter {
         println!("Found person {:?}", person.unwrap());
     }
+
+
 
     Ok(())
 }
