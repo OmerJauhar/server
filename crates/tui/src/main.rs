@@ -1,18 +1,8 @@
-use std::process::Child;
-
-use cursive::{Cursive, View};
-use cursive::backends::crossterm::crossterm::style::Color;
-use cursive::theme ; 
-use cursive::theme::BaseColor;
-use cursive::view::{Nameable, Resizable, Finder, Margins};
-use crate::BaseColor::Green;
-// use cursive::views::{Dialog, TextView};
+use cursive::{Cursive,menu,event}; 
+use cursive::view::{Nameable, Resizable, Margins};
 use cursive::theme::{BorderStyle, Palette};
 use cursive::traits::With;
-use cursive::views::{Dialog, EditView, LinearLayout, TextView};
-use cursive::menu;
-use cursive::event;
-use cursive::align;
+use cursive::views::{Dialog, EditView};
 fn main() {
     let mut siv = cursive::default();
     siv.set_theme(cursive::theme::Theme {
@@ -21,7 +11,6 @@ fn main() {
         palette: Palette::retro().with(|palette| {
             use cursive::theme::BaseColor::*;
             {
-                // First, override some colors from the base palette.
                 use cursive::theme::PaletteColor::*;
                 palette[Background] = Black.dark();
                 palette[View] = Black.dark();
@@ -31,7 +20,6 @@ fn main() {
                 palette[Highlight] = Blue.dark();
             }
             {
-                // Then override some styles.
                 use cursive::theme::Effect::*;
                 use cursive::theme::PaletteStyle::*;
                 use cursive::theme::Style;
@@ -78,54 +66,54 @@ fn main() {
                 s.add_layer(Dialog::info("Contact OJ \n at p218055@pwr.nu.edu.pk"))
             }),
     );
-
 siv.add_global_callback(event::Key::Esc, |s| s.select_menubar());
     //global callbacl for server 
     siv.add_global_callback('q', |s| s.quit());
-
-
     let on_enter = |s: &mut Cursive| {
-
-
-        
-        // Get the content of the EditView by its name.
+        let mut _email = String::from("");
+        let mut _password = String::from("");
         if let Some(content) = s.call_on_name("name", |v: &mut EditView| {
             v.get_content()
         }) {
             if content.is_empty()
             {
-                
                 s.add_layer(Dialog::text(format!(" Enter an Email"))
             .title("Error")
             .button("Back", |s| {s.pop_layer();})
             .padding(Margins::lrtb(1, 2, 0,0)));
             }
             else  {
+                _email = content.to_string(); 
                 s.pop_layer();
                 password_screen(s);
             }  
         }
+        else if let Some(content1) = s.call_on_name("password", |v: &mut EditView| {
+            v.get_content()
+        }) {
+            if content1.is_empty()
+            {
+                
+                s.add_layer(Dialog::text(format!(" Enter password"))
+            .title("Error")
+            .button("Back", |s| {s.pop_layer();})
+            .padding(Margins::lrtb(1, 2, 0,0)));
+            }
+            else  {
+                _password = content1.to_string(); 
+                s.pop_layer();
+                s.quit();
+                println!("The value of the email and password are {} {}",_email,_password);
+            }  
+        }
+
     };
     siv.add_global_callback(cursive::event::Key::Enter, on_enter);
-    
-
-    //login screen
     let login_layer = cursive::views::Dialog::text("text").title("Enter your Email")
     .padding_lrtb(1, 1, 1, 0)
     .content(EditView::new().with_name("name").fixed_width(20))
     .button("Exit", |s| s.quit())
     .button("Login", password_screen);
-    
-    let options = cursive::views::Dialog::default()
-    .padding_lrtb(0,0,0,0)
-    .button("Help", |s|{
-        // s.add_layer(cursive::views::HideableView(TextView::new("content")));
-        s.add_fullscreen_layer(cursive::views::Dialog::info("Contact OJ \n at p218055@pwr.nu.edu.pk").button("Esc", |s| {
-            s.pop_layer();
-            // s.add_layer(LinearLayout);
-        }))
-    })
-    .button("Exit", |v| v.quit());
     let linear_layout = cursive::views::LinearLayout::vertical()
     .child(cursive::views::Dialog::text("OJ's Server").padding_lrtb(6,0,0,0))
     .child(login_layer);
@@ -151,46 +139,15 @@ fn email_screen(s: &mut Cursive)
 
 fn password_screen(s: &mut Cursive) {
     s.pop_layer();
-    let password_Screen = cursive::views::Dialog::new()
+    // PASSWORD_FLAG = trsue ; 
+    let password_screen = cursive::views::Dialog::new()
     .title("Enter your Password")
     .padding_lrtb(1, 1, 1, 0)
-    .content(EditView::new().with_name("name").fixed_width(20))
+    .content(EditView::new().with_name("password").fixed_width(20))
     .button("Back", email_screen)
     .button("Login", password_screen);
     let linear_layout = cursive::views::LinearLayout::vertical()
     .child(cursive::views::Dialog::text("OJ's Server").padding_lrtb(6,0,0,0))
-        .child(password_Screen);
+        .child(password_screen);
     s.add_layer(linear_layout);
-    // s.add_layer(Dialog::text("meow")
-    //     .title("Question 1")
-    //     .button("Yes!", |s| show_answer(s, "I knew it! Well done!"))
-    //     .button("No!", |s| show_answer(s, "I knew you couldn't be trusted!"))
-    //     .button("Uh?", |s| s.add_layer(Dialog::info("Try again!"))));
-}
-// fn show_main(s: &mut Cursive) {
-//     s.pop_layer();
-//     let main_Screen = cursive::views::Dialog::new{};
-//     // s.add_layer(Dialog::text("meow")
-//     //     .title("Question 1")
-//     //     .button("Yes!", |s| show_answer(s, "I knew it! Well done!"))
-//     //     .button("No!", |s| show_answer(s, "I knew you couldn't be trusted!"))
-//     //     .button("Uh?", |s| s.add_layer(Dialog::info("Try again!"))));
-// }
-fn show_popup(s: &mut Cursive, name: &str) {
-    if name.is_empty() {
-        s.add_layer(Dialog::info("Please enter a name!"));
-    } else {
-        let content = format!("Hello {}!", name);
-        s.pop_layer();
-        s.add_layer(
-            Dialog::around(TextView::new(content))
-                .button("Quit", |s| s.quit()),
-        );
-    }
-}
-fn show_answer(s: &mut Cursive, msg: &str) {
-    s.pop_layer();
-    s.add_layer(Dialog::text(msg)
-        .title("Results")
-        .button("Finish", |s| s.quit()));
 }
