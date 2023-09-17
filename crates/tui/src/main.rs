@@ -1,10 +1,10 @@
 use std::process::Child;
 
-use cursive::Cursive;
+use cursive::{Cursive, View};
 use cursive::backends::crossterm::crossterm::style::Color;
 use cursive::theme ; 
 use cursive::theme::BaseColor;
-use cursive::view::{Nameable, Resizable, Finder};
+use cursive::view::{Nameable, Resizable, Finder, Margins};
 use crate::BaseColor::Green;
 // use cursive::views::{Dialog, TextView};
 use cursive::theme::{BorderStyle, Palette};
@@ -82,6 +82,31 @@ fn main() {
 siv.add_global_callback(event::Key::Esc, |s| s.select_menubar());
     //global callbacl for server 
     siv.add_global_callback('q', |s| s.quit());
+
+
+    let on_enter = |s: &mut Cursive| {
+
+
+        
+        // Get the content of the EditView by its name.
+        if let Some(content) = s.call_on_name("name", |v: &mut EditView| {
+            v.get_content()
+        }) {
+            if content.is_empty()
+            {
+                
+                s.add_layer(Dialog::text(format!(" Enter an Email"))
+            .title("Error")
+            .button("Back", |s| {s.pop_layer();})
+            .padding(Margins::lrtb(1, 2, 0,0)));
+            }
+            else  {
+                s.pop_layer();
+                password_screen(s);
+            }  
+        }
+    };
+    siv.add_global_callback(cursive::event::Key::Enter, on_enter);
     
 
     //login screen
@@ -89,7 +114,7 @@ siv.add_global_callback(event::Key::Esc, |s| s.select_menubar());
     .padding_lrtb(1, 1, 1, 0)
     .content(EditView::new().with_name("name").fixed_width(20))
     .button("Exit", |s| s.quit())
-    .button("Login", show_next);
+    .button("Login", password_screen);
     
     let options = cursive::views::Dialog::default()
     .padding_lrtb(0,0,0,0)
@@ -109,14 +134,29 @@ siv.add_global_callback(event::Key::Esc, |s| s.select_menubar());
     siv.run();
 }
 
-fn show_next(s: &mut Cursive) {
+fn email_screen(s: &mut Cursive)
+{
+    let login_layer = cursive::views::Dialog::text("text").title("Enter your Email")
+    .padding_lrtb(1, 1, 1, 0)
+    .content(EditView::new().with_name("name").fixed_width(20))
+    .button("Exit", |s| s.quit())
+    .button("Login", password_screen);
+    let linear_layout = cursive::views::LinearLayout::vertical()
+    .child(cursive::views::Dialog::text("OJ's Server").padding_lrtb(6,0,0,0))
+    .child(login_layer);
+    // .child(options);
+    s.pop_layer();
+    s.add_layer(linear_layout);
+}
+
+fn password_screen(s: &mut Cursive) {
     s.pop_layer();
     let password_Screen = cursive::views::Dialog::new()
     .title("Enter your Password")
     .padding_lrtb(1, 1, 1, 0)
     .content(EditView::new().with_name("name").fixed_width(20))
-    .button("Exit", |s| s.quit())
-    .button("Login", show_next);
+    .button("Back", email_screen)
+    .button("Login", password_screen);
     let linear_layout = cursive::views::LinearLayout::vertical()
     .child(cursive::views::Dialog::text("OJ's Server").padding_lrtb(6,0,0,0))
         .child(password_Screen);
@@ -136,7 +176,18 @@ fn show_next(s: &mut Cursive) {
 //     //     .button("No!", |s| show_answer(s, "I knew you couldn't be trusted!"))
 //     //     .button("Uh?", |s| s.add_layer(Dialog::info("Try again!"))));
 // }
-
+fn show_popup(s: &mut Cursive, name: &str) {
+    if name.is_empty() {
+        s.add_layer(Dialog::info("Please enter a name!"));
+    } else {
+        let content = format!("Hello {}!", name);
+        s.pop_layer();
+        s.add_layer(
+            Dialog::around(TextView::new(content))
+                .button("Quit", |s| s.quit()),
+        );
+    }
+}
 fn show_answer(s: &mut Cursive, msg: &str) {
     s.pop_layer();
     s.add_layer(Dialog::text(msg)
