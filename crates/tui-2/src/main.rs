@@ -3,11 +3,11 @@ use std::{error::Error, io, vec};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}, style,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 // use itertools::Itertools;
 use ratatui::{layout::Constraint::*, prelude::*, widgets::*};
-use tui::widgets::Paragraph;
+// use tui::widgets::Paragraph;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // setup terminal
@@ -83,28 +83,18 @@ fn ui<B: Backend>(frame: &mut Frame<B>) {
 
     let rand_value : u64 = 23 ; 
 
-    // let sparkline = Sparkline::default()
-    //     .block(
-    //         Block::default()
-    //             .title("Data1")
-    //             .borders(Borders::LEFT | Borders::RIGHT),
-    //     )
-    //     .data(&rand_value)
-    //     .style(Style::default().fg(Color::Yellow));
-    // frame.render_widget(sparkline, search_layer[1]);
-
-    // frame.render_widget(Block::default().borders(ratatui::widgets::Borders::ALL),center_layout[2]);
-
-
     let main_layer = Layout::default()
     .direction(Direction::Horizontal)
     .constraints(vec![
-        Percentage(80),
+        Percentage(20),
+        Percentage(60),
         Percentage(20)
     ])
     .split(center_layout[2]);
 
+    frame.render_widget(Block::default().borders(ratatui::widgets::Borders::ALL), main_layer[0]);
     frame.render_widget(Block::default().borders(ratatui::widgets::Borders::ALL), main_layer[1]);
+    frame.render_widget(Block::default().borders(ratatui::widgets::Borders::ALL), main_layer[2]);
 
     let about_layer = Layout::default()
     .direction(Direction::Horizontal)

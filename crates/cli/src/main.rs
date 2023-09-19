@@ -1,19 +1,14 @@
 use clap::Parser;
 use clap::Subcommand;
-
-
 #[derive(Parser)]
 #[derive(Debug)]
 #[clap(author = "Omer Jauhar", version = "0.1", about)]
 #[command(propagate_version = true)]
-/// CLI tool for accessing the server
-
 struct CliDataType
 {
     #[command(subcommand)]
     command: Commands 
 }
-
 #[derive(Debug)]
 #[derive(Subcommand)]
 // #[derive(Copy)] // copy trait cannot be implemented due to non primitive data types 
