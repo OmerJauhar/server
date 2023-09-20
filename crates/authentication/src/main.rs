@@ -12,8 +12,8 @@ use argon2rs::{Argon2, Variant};
 
 fn dehash_data(password : String , hashed_salt : String ) -> String
 {
-    let local_salt = env::var("LOCAL_SALT").expect("LOCAL_SALT must be set");
-
+    // let local_salt = env::var("LOCAL_SALT").expect("LOCAL_SALT must be set");
+    let local_salt = String::from("CjZUvtOVH2=z8_dA2z") ;
     let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
     let random_salt_hash = Encoded::new(a2, hashed_salt.as_bytes(), local_salt.as_bytes(), b"", b"").to_u8();
     let random_salt_hash_storable_encoding = String::from_utf8(random_salt_hash).unwrap();
@@ -123,8 +123,7 @@ fn authenticator(input_name:String,input_password:String) -> Result<bool>
                         let row = row.as_ref().unwrap();
                         if input_name == row.name
                         {
-                            let (password_hash,random_salt) = hash_data(&row.password);
-                            println!("==== {:?}",password_hash);
+                            println!("==== {:?}",row.password);
                             let meow_data = dehash_data(input_password.clone(),row.salt.clone());
                             println!("==== {:?}",meow_data);
 
@@ -159,8 +158,8 @@ fn main() -> Result<()> {
         (),
     )?;
     dotenv().ok();
-    // add_user(String::from("Omer"), String::from("meow"));
-    authenticator(String::from("Omer"),String::from("meow"));
+    add_user(String::from("Jauhar"), String::from("meow"));
+    authenticator(String::from("Jauhar"),String::from("meow"));
 
 
     Ok(())
