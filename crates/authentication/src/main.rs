@@ -1,6 +1,5 @@
 extern crate dotenv;
 extern crate rand; 
-
 use dotenv::dotenv;
 use std::env;
 use std::fs::File;
@@ -27,30 +26,17 @@ fn dehash_data(password : String , hashed_salt : String ) -> String
 
 }
 
-fn hash_data(password:String) -> (String,String) 
+fn hash_data(password:&String) -> (String,String) 
 {
     let mut file = File::open("LOCAL_SALT.env").expect("File Opened Successfuly");
     let mut local_salt = String::new() ; 
     file.read_to_string(&mut local_salt).expect("."); 
     env::set_var("LOCAL_SALT", &local_salt);
-
-    // let random_salt = rand::thread_rng().gen()::<str>().take(32).collect::<String>();
     let random_salt: String = rand::thread_rng()
     .sample_iter(rand::distributions::Alphanumeric)
     .take(32) // Adjust the length of the random string as needed
     .map(char::from)
     .collect();
-
-    /*
-    fn new(argon: Argon2, p: &[u8], s: &[u8], k: &[u8], x: &[u8]) -> Self
-    Generates a new hashing session from password, salt, and other byte input. Parameters are:
-    argon: An Argon2 struct representative of the desired hash algorithm parameters.
-    p: Password input. as bytes 
-    s: Salt. as bytes 
-    k: An optional secret value. 
-    x: Optional, miscellaneous associated data.
-    Note that p, s, k, x must conform to the same length constraints dictated by Argon2::hash.
-    */
 
     let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
     let random_salt_hash = Encoded::new(a2, random_salt.as_bytes(), local_salt.as_bytes(), b"", b"").to_u8();
@@ -80,15 +66,16 @@ fn add_user(input_name:String , input_password:String) -> Result<()>
     let conn = Connection::open("my_database.db")?;
 
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS person (
+        "CREATE TABLE IF NOT EXISTS person1 (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            salt TEXT NOT NULL
         )",
         (),
     )?;
 
-    let (password,password_salt) = hash_data(input_password);
+    let (password,password_salt) = hash_data(&input_password);
    
     let me = Person {
         id: 0,
@@ -99,13 +86,13 @@ fn add_user(input_name:String , input_password:String) -> Result<()>
     };
 
     conn.execute(
-        "INSERT INTO person (name, password) VALUES (?1, ?2)",
+        "INSERT INTO person1 (name, password, salt) VALUES (?1, ?2, ?3)",
         [&me.name, &me.password, &me.salt],
     )?;
     Ok(())
 }
 
-fn authenticator(input_name:String , password:String) -> bool
+fn authenticator(input_name:String,input_password:String) -> Result<bool>
 {
     let mut boolvar = false;
     let conn = Connection::open("my_database.db");
@@ -113,42 +100,48 @@ fn authenticator(input_name:String , password:String) -> bool
     {
         Ok(conn1) => 
         {
-            let mut  stmt = conn1.prepare("SELECT id, name, password FROM person");
+            let mut  stmt = conn1.prepare("SELECT id, name, password, salt FROM person1");
             match stmt
             {
                 Ok(mut stmt1) =>
-                {
-                    
-                    let person_iter = stmt1.query_map([], |row| {
-                       Person{
-                        id = row.get(0)?,
+                {   
+                    let rows = stmt1.query_map([], |row|
+                    {
+                       Ok(
+                        Person
+                       {
+                        id : row.get(0)?,
+                        name : row.get(1)?,
+                        password : row.get(2)?,
+                        salt : row.get(3)?,
                        }
-                        // match row.get(2) 
-                        // {
-                        //     Ok(row_name) =>
-                        //     {
-                        //         match row.get(2)
-                        //         {
-                        //             Ok(row_password) =>
-                        //             {
-                        //                 if (row_name == input_name ) && ( row_password == dehash_data(password, row.get(3)?)){
-                        //                         boolvar = true;  
-                        //                 }
-                        //                 Ok(())
-                        //             }
-                        //             Err(error) => Err(error)
-                        //         }
-                        //     }
-                        //     Err(error) => Err(error)   
-                        // }
-                    });
+                       )
+                    })?;
+                    for row in rows 
+                    {
+                        
+                        let row = row.as_ref().unwrap();
+                        if input_name == row.name
+                        {
+                            let (password_hash,random_salt) = hash_data(&row.password);
+                            println!("==== {:?}",password_hash);
+                            let meow_data = dehash_data(input_password.clone(),row.salt.clone());
+                            println!("==== {:?}",meow_data);
+
+
+                            
+
+                        }
+                    }
+
+                    
                 }
                 Err(error) => println!("{:}",error)
             }
         }
         Err(error) => println!("Connection failed")
     }
-        boolvar
+       Ok(boolvar)
 }
 
     
@@ -157,40 +150,17 @@ fn main() -> Result<()> {
     let conn = Connection::open("my_database.db")?;
 
     conn.execute(
-        "CREATE TABLE IF NOT EXISTS person (
+        "CREATE TABLE IF NOT EXISTS person1 (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
-            password TEXT NOT NULL
+            password TEXT NOT NULL,
+            salt TEXT NOT NULL
         )",
         (),
     )?;
-
-    //
     dotenv().ok();
-
-    let mut stmt = conn.prepare("SELECT id, name, password FROM person")?;
-    let person_iter = stmt.query_map([], |row| {
-        Ok(Person {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            password: row.get(2)?,
-            salt: row.get(3)?
-        })
-    })?;
-    println!("1");
-    // add_user(String::from("oj"),String::from("oj"));
-    let (test_password, test_salt) =hash_data(String::from("oj")); 
-
-    println!("hash data function \n\n {:}\n\n {:}",test_password,test_salt);
-    
-    println!("\n\n2");
-
-    println!("final data\n\n {:}",dehash_data(String::from("oj"), test_salt));
-    
-    for person in person_iter {
-        println!("Found person {:?}", person.unwrap());
-    }
-
+    // add_user(String::from("Omer"), String::from("meow"));
+    authenticator(String::from("Omer"),String::from("meow"));
 
 
     Ok(())
