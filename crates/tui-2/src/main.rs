@@ -92,8 +92,23 @@ fn ui<B: Backend>(frame: &mut Frame<B>) {
     ])
     .split(center_layout[2]);
 
-    frame.render_widget(Block::default().borders(ratatui::widgets::Borders::ALL), main_layer[0]);
-    frame.render_widget(Block::default().borders(ratatui::widgets::Borders::ALL), main_layer[1]);
+    let directories = [ListItem::new("Item 1"), ListItem::new("Item 2"), ListItem::new("Item 3")];
+    let directories_list = List::new(directories)
+    .block(Block::default().title("Directories").borders(Borders::ALL))
+    .style(Style::default().fg(Color::White))
+    .highlight_style(Style::default().add_modifier(Modifier::ITALIC))
+    .highlight_symbol(">>");
+
+
+    let files = [ListItem::new("meow")];
+    let files_list = List::new(files)
+    .block(Block::default().title("Files").borders(Borders::ALL))
+    .style(Style::default().fg(Color::White))
+    .highlight_style(Style::default().add_modifier(Modifier::ITALIC))
+    .highlight_symbol(">>");
+
+    frame.render_widget(directories_list, main_layer[0]);
+    frame.render_widget(files_list, main_layer[1]);
     frame.render_widget(Block::default().borders(ratatui::widgets::Borders::ALL), main_layer[2]);
 
     let about_layer = Layout::default()
