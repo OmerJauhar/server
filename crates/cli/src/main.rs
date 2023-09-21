@@ -20,7 +20,7 @@ enum Commands
     #[arg(short = 'u',long)]
     id: Option<String> ,
 
-    #[clap{short,long}] 
+    #[clap{short = 'p',long}] 
     password: Option<String>,
     }
 }
