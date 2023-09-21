@@ -12,11 +12,15 @@ use argon2rs::{Argon2, Variant};
 
 fn dehash_data(password : String , hashed_salt : String ) -> String
 {
-    // let local_salt = env::var("LOCAL_SALT").expect("LOCAL_SALT must be set");
-    let local_salt = String::from("CjZUvtOVH2=z8_dA2z") ;
+    let mut file = File::open("LOCAL_SALT.env").expect("File Opened Successfuly");
+    let mut local_salt = String::new() ; 
+    file.read_to_string(&mut local_salt).expect("."); 
+    env::set_var("LOCAL_SALT", &local_salt);
     let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
     let random_salt_hash = Encoded::new(a2, hashed_salt.as_bytes(), local_salt.as_bytes(), b"", b"").to_u8();
     let random_salt_hash_storable_encoding = String::from_utf8(random_salt_hash).unwrap();
+
+    //random salt is not generated in this case but instead is fetched from the database 
 
     let a2 = Argon2::new(PASSES, LANES, KIB, Variant::Argon2d).unwrap();
     let data_hash = Encoded::new(a2, password.as_bytes(), random_salt_hash_storable_encoding.as_bytes(), b"", b"").to_u8();
@@ -119,17 +123,14 @@ fn authenticator(input_name:String,input_password:String) -> Result<bool>
                     })?;
                     for row in rows 
                     {
-                        
                         let row = row.as_ref().unwrap();
                         if input_name == row.name
-                        {
-                            println!("==== {:?}",row.password);
+                        {       
                             let meow_data = dehash_data(input_password.clone(),row.salt.clone());
-                            println!("==== {:?}",meow_data);
-
-
-                            
-
+                            if row.password == meow_data  {
+                                boolvar = true ;
+                                break;
+                            }
                         }
                     }
 
@@ -158,7 +159,7 @@ fn main() -> Result<()> {
         (),
     )?;
     dotenv().ok();
-    add_user(String::from("Jauhar"), String::from("meow"));
+    // add_user(String::from("Jauhar"), String::from("meow"));
     authenticator(String::from("Jauhar"),String::from("meow"));
 
 
