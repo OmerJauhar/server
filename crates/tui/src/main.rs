@@ -143,7 +143,7 @@ fn password_screen(s: &mut Cursive) {
     let password_screen = cursive::views::Dialog::new()
     .title("Enter your Password")
     .padding_lrtb(1, 1, 1, 0)
-    .content(EditView::new().with_name("password").fixed_width(20).style(cursive::theme::Effect::Strikethrough))
+    .content(EditView::new().with_name("password").fixed_width(20))
     .button("Back", email_screen)
     .button("Login", password_screen);
     let linear_layout = cursive::views::LinearLayout::vertical()

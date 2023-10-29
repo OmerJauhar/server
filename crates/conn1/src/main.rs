@@ -1,14 +1,30 @@
-use std::error::Error;
-use reqwest;
+use std::net::SocketAddr;
+
+use tokio::net::{TcpListener,TcpStream};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    let url = "http://www.google.com/";
-    let response = reqwest::get(url).await?; // Use await to await the response.
+async fn main() {
+    let listener = TcpListener::bind("127.0.0.1:8741").await.unwrap() ; 
+    loop {
+        let (sockets, Input_socket_addrs) = listener.accept().await.unwrap();
 
-    let content = response.text().await?; // Use await to await the text content.
 
-    println!("{}", content);
+        let handle = tokio::spawn(async move
+        {
+            process(sockets,Input_socket_addrs).await;        
+        }
+    )
+    }
+    // println!("Hello, world!");
+}
 
-    Ok(())
+async fn process(socket : TcpStream, input_socket_addrs : SocketAddr)
+{
+    let connection = tokio::net::TcpStream::connect(input_socket_addrs).await;
+    for meow in socket 
+    {
+        
+    }
+
+
 }
