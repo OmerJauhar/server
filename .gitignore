@@ -1,3 +1,10 @@
-/target
-crates/authentication/LOCAL_SALT.env
-crates/authentication/my_database.db
+target
+.crates/authentication/LOCAL_SALT.env
+.crates/authentication/my_database.db
+.crates/connection-client/target
+.crates/conn/target
+.crates/cli/target
+.crates/authentication/target
+.crates/tui/target
+.crates/tui-2/target
+.crates/connection-server/target
